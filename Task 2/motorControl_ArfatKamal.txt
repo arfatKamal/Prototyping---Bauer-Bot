@@ -15,41 +15,42 @@ pinMode(7,OUTPUT);   //right motor forward
 pinMode(6,OUTPUT);   //right motor reverse
 pinMode(enA, OUTPUT);
 pinMode(enB, OUTPUT);
-
+analogWrite(enA, 150);
+analogWrite(enB, 150);
 Serial.begin(9600);
 }
 
 
 //Motor Commands
-forward {
+void forward() {
  digtatWrite(in1, HIGH);
  digtatWrite(in3, HIGH);
  digitalWrite(in2, LOW);
  digitalWrite(in4, LOw);
 }
 
-backward {
+void backward() {
  digtatWrite(in1, LOW);
  digtatWrite(in3, LOW);
  digitalWrite(in2, HIGH);
  digitalWrite(in4, HIGH);
 }
 
-forward_right {
+void forward_right() {
  digtatWrite(in1, HIGH);
  digtatWrite(in3, LOW);
  digitalWrite(in2, LOW);
  digitalWrite(in4, HIGH);
 }
 
-forward_left {
+void forward_left() {
  digtatWrite(in1, LOW);
  digtatWrite(in3, HIGH);
  digitalWrite(in2, HIGH);
  digitalWrite(in4, LOW);
 }
 
-stop {
+void stop() {
  digtatWrite(in1, LOW);
  digtatWrite(in3, LOW);
  digitalWrite(in2, LOW);
