@@ -96,7 +96,7 @@ void loop(){
      {
        Serial.println("Going forward");
        Mode = Forward; 
-     }else if (IR1 == 0 || IR2 == 0 || currentDistance <= 40)
+     }else if ( (IR1 == 0 && IR2 == 0) || currentDistance <= 40)
      {
        Serial.println("Object detected or Both sensor on black");
        Mode = object;  
