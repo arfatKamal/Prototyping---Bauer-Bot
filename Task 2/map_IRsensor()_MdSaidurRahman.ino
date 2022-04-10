@@ -51,7 +51,7 @@ void map_IRsensor() {
 
      else if(virtualIR_read.value==0xFD28D7){
         IR1=1;      //Both Sensors are on the White Surface.
-        IR2=1;       //Remote Button= 3
+        IR2=1;       //Remote Button= 4
 
         }
   }
