@@ -20,20 +20,22 @@ const byte leftMotor = 5;   // Motor Left connections
 const byte in3 = 7;         // left motor ; for foward LOW
 const byte in4 = 6;         // left motor ; for forward HIGH
 
-byte Speed = 200;
+byte Speed = 80;
 
-byte error = 50;
-byte leftSpeed  = Speed;
-byte rightSpeed = Speed + error;
+byte error = 22;
+byte leftSpeed  = Speed+error;
+byte rightSpeed = Speed;
 
-byte turnSpeed;
+byte turnSpeed=10;;
 
 
 
 void readings(void *argc);
 void running(void *argc);
+void setSpeed(void *argc);
+void positionCount(void *argc);
 
-TaskHandle_t Data, go;
+TaskHandle_t Data, go, mSpeed, axis;
 
 /* functions */
 void distance();
@@ -62,17 +64,67 @@ void setup()
   pinMode(IR1_pin, INPUT);
   pinMode(IR2_pin, INPUT);
 
-  xTaskCreate(readings, "Sensor readings", configMINIMAL_STACK_SIZE+16, NULL, 1, &Data);
-  xTaskCreate(running, "Car running", configMINIMAL_STACK_SIZE+16, NULL,1 , &go);
-
-
+ 
+  xTaskCreate(readings, "Sensor readings", configMINIMAL_STACK_SIZE, NULL, 1, &Data);
+  xTaskCreate(running, "Car running", configMINIMAL_STACK_SIZE, NULL,1 , &go);
+  xTaskCreate(setSpeed, "Incresing Speed", configMINIMAL_STACK_SIZE, NULL,1 , &mSpeed);
+  xTaskCreate(positionCount, "Incresing Speed", configMINIMAL_STACK_SIZE+16, NULL,1 , &axis);
 
   vTaskStartScheduler();
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
+
+}
+
+
+
+void setSpeed(void *argc)
+{
+
+  (void)argc;
+
+  while (1)
+  {
+     
+  if (IR1 == 1 && IR2 == 0)    
+     { 
+       turnSpeed += 5;
+       analogWrite(leftMotor, turnSpeed);
+       analogWrite(rightMotor, 0);
+       //vTaskDelay(100/portTICK_PERIOD_MS);
+       if (turnSpeed >= leftSpeed){
+
+         turnSpeed = 10;
+       }
+
+     }else if (IR1 == 0 && IR2 == 1) 
+     {
+       turnSpeed += 5;
+       analogWrite(rightMotor, turnSpeed);
+       analogWrite(leftMotor, 0);
+       //vTaskDelay(100/portTICK_PERIOD_MS);
+       if (turnSpeed >= rightSpeed){
+
+         turnSpeed = 10;
+       }
+
+
+     }else if (IR1 == 0 && IR2 == 0)
+     {
+      analogWrite(leftMotor, leftSpeed);
+      analogWrite(rightMotor, rightSpeed);
+      turnSpeed= 10; 
+
+     }else if (IR1 == 1 && IR2 == 1)
+     {
+        stop();
+     }
+
+
+  }
+
 }
 
 void readings(void *argc)
@@ -84,13 +136,28 @@ void readings(void *argc)
   {
    IR1 = digitalRead(IR1_pin);
    IR2 = digitalRead(IR2_pin);
-
+  
+   Serial.print("Left IR: ");
    Serial.println(IR1);
+   Serial.print("Right IR: ");
    Serial.println(IR2);
   }
 }
 
 
+void positionCount(void *argc){
+
+(void)argc;
+
+  while (1)
+  {
+
+
+
+    
+
+  }
+}
 
 void running(void *argc)
 {
@@ -102,32 +169,22 @@ void running(void *argc)
     
   if (IR1 == 1 && IR2 == 0)    
      { 
-       turnSpeed += 5;
-       analogWrite(leftMotor, 0);
-       analogWrite(rightMotor, turnSpeed);
-       forward_left();
+      forward_right();
+      //stop();
 
      }else if (IR1 == 0 && IR2 == 1) 
      {
-       turnSpeed += 5;
-       analogWrite(leftMotor, turnSpeed);
-       analogWrite(rightMotor, 0);
-       forward_right();
-
-     }else if (IR1 == 1 && IR2 == 1)
-     {
-       turnSpeed= 80;
-
-       forward();
+       forward_left();
+       //stop();
 
      }else if (IR1 == 0 && IR2 == 0)
      {
-       
-       turnSpeed += 5;
-       analogWrite(leftMotor, 0);
-       analogWrite(rightMotor, turnSpeed);
+       forward();
+      // stop();
 
-       forward_left();
+     }else if (IR1 == 1 && IR2 == 1)
+     {
+       stop();
      }
 
   }
