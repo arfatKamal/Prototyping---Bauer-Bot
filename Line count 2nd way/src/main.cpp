@@ -40,12 +40,12 @@ const uint8_t in3 = 7;         // left motor ; for foward LOW
 const uint8_t in4 = 6;         // left motor ; for forward HIGH
 
 /* Speed */
-uint8_t Speed = 95;
-uint8_t error = 23;
+uint8_t Speed = 150;
+uint8_t error = 30;
 uint8_t leftSpeed = Speed+error;
 uint8_t rightSpeed = Speed;
 
-uint8_t turnSpeed = 20;
+uint8_t turnSpeed = 30;
 
 
 void readings(void *argc);
@@ -67,7 +67,7 @@ void ninetyTurn();
 
 void setup()
 {
-
+    
   Serial.begin(9600);
 
   pinMode(9, OUTPUT);
@@ -85,10 +85,6 @@ void setup()
   pinMode(IR2_pin, INPUT);
   pinMode(IR3_pin, INPUT);
 
-  
-
- 
- // xTaskCreate(readings, "Sensor readings", configMINIMAL_STACK_SIZE, NULL, 1, &Data);
   xTaskCreate(running, "Car running", configMINIMAL_STACK_SIZE, NULL,1 , &go);
   xTaskCreate(setSpeed, "Incresing Speed", configMINIMAL_STACK_SIZE, NULL,1 , &mSpeed);
   xTaskCreate(positionCount, "Counting position", configMINIMAL_STACK_SIZE+16, NULL,1 , &axis);
@@ -101,10 +97,13 @@ void loop()
 {  
    /*IR1 = digitalRead(IR1_pin);
    IR2 = digitalRead(IR2_pin);
+   count = digitalRead(IR3_pin);
    Serial.print("Left IR: ");
    Serial.println(IR1);
    Serial.print("Right IR: ");
-   Serial.println(IR2);*/
+   Serial.println(IR2);
+   Serial.print("3rd IR: ");
+   Serial.println(count);*/
   
 }
 
@@ -157,26 +156,6 @@ void setSpeed(void *argc)
 
 }
 
-void readings(void *argc)
-{
-
-  (void)argc;
-
- /* while (1)
-  {
-   IR1 = digitalRead(IR1_pin);
-   IR2 = digitalRead(IR2_pin);
-   count = digitalRead(IR3_pin);
-  
-   Serial.print("Left IR: ");
-   Serial.println(IR1);
-   Serial.print("Right IR: ");
-   Serial.println(IR2);
-
-  
-  }*/
-}
-
 
 void positionCount(void *argc){
 
@@ -196,7 +175,7 @@ void positionCount(void *argc){
     {
     case lowStateX:
 
-      /*destinationX = (targetX - currentX);
+      destinationX = (targetX - currentX);
       Serial.print(" Destination X: ");
       Serial.println(destinationX);
 
@@ -208,9 +187,9 @@ void positionCount(void *argc){
         leftSpeed = 102;
         rightSpeed = 80;
         ninetyTurn();
-        vTaskDelay(300/portTICK_PERIOD_MS);
+        vTaskDelay(200/portTICK_PERIOD_MS);
         State = turn; 
-      }*/
+      }
      
     if (count == 1){
 
@@ -219,22 +198,22 @@ void positionCount(void *argc){
       break;
     case highStateX:
     
-    if (count == 0)
+    if (count == 0 && IR1 == 0 && IR2 == 0)
     {
       currentX += 1; 
-      //Serial.println(currentX);
+      Serial.println(currentX);
       State = lowStateX;
     }
       break;
 
       case turn:
 
-      if (count == 1 && IR1 == 0 && IR2 == 0 )
+      if (count == 1 && IR1 == 0 && IR2 == 0)
       {
         stop();
-        //vTaskDelay(500/portTICK_PERIOD_MS);
-       // vTaskResume(go);  // resuming line follow
-       // State = highStateY; 
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        vTaskResume(go);  // resuming line follow
+        State = highStateY; 
       }else
       {
         ninetyTurn();
@@ -244,11 +223,28 @@ void positionCount(void *argc){
       case highStateY:
 
 
-      if (count == 0)
+      destinationY = (targetY - currentY);
+      Serial.print(" Destination Y: ");
+      Serial.println(destinationY);
+
+      if (destinationY == 0 )
+      {
+        vTaskSuspend(go);
+        vTaskSuspend(mSpeed);
+        stop();
+        /*leftSpeed = 102;
+        rightSpeed = 80;
+        ninetyTurn();
+        vTaskDelay(200/portTICK_PERIOD_MS);
+        State = turn; */
+      }
+
+
+      if (count == 0 && IR1 == 0 && IR2 == 0)
       {
         currentY += 1; 
-        //Serial.println(currentY);
-         State = lowStateY;
+        Serial.println(currentY);
+        State = lowStateY;
       }    
     break;
 
@@ -261,9 +257,6 @@ void positionCount(void *argc){
       }      
       break;
     
-
-
-
 
 
     default:
