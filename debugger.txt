@@ -1,0 +1,8 @@
+ Serial.print(" New target X: ");
+      Serial.print(targetX);
+      Serial.print(" New target Y: ");
+      Serial.println(targetY);
+      Serial.print(" current X: ");
+      Serial.print(currentX);
+      Serial.print(" Current Y: ");
+      Serial.println(currentY);
