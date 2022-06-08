@@ -14,14 +14,14 @@ uint16_t currentDistance;
 
 
 /* Position Count */
-uint8_t targetX = 3;
-uint8_t currentX= 1;
-uint8_t targetY = 3;
-uint8_t currentY= 1;
-uint8_t secondX = 1;
-uint8_t secondY = 1; 
-uint8_t destinationX = (targetX - currentX);
-uint8_t destinationY = (targetY - currentY);
+uint8_t targetX = 2;
+uint8_t currentX= 0;
+uint8_t targetY = 2;
+uint8_t currentY= 3;
+uint8_t secondX = 3;
+uint8_t secondY = 3; 
+uint8_t destinationX = abs(targetX - currentX);
+uint8_t destinationY = abs(targetY - currentY);
 
 /* Position count States */ 
 const uint8_t highStateX = 0;
@@ -33,10 +33,9 @@ const uint8_t destination = 5;
 volatile uint8_t State = highStateX;
 
 /*Turn */
-const uint8_t xaxisTurn = 10;
-const uint8_t yaxisTurn = 11;
-volatile uint8_t axisTurn;
-bool x, y; 
+
+volatile uint8_t direction=1; 
+
 
 /* Motors */
 const uint8_t rightMotor = 10;   // Motor Right connections
@@ -185,19 +184,13 @@ void positionCount(void *argc){
     {
     case lowStateX:
 
-      destinationX = (targetX - currentX);
-      Serial.print(" Destination X: ");
-      Serial.println(destinationX);
-
       if (destinationX == 0 )
       {
         vTaskSuspend(go);
         vTaskSuspend(mSpeed);
         stop();
         vTaskDelay(200/portTICK_PERIOD_MS);
-        x = false;
-        y = true; 
-        axisTurn = yaxisTurn; 
+
         State = turn; 
       }
      
@@ -217,43 +210,25 @@ void positionCount(void *argc){
       break;
 
       case turn:
-
-      if (count == 0 && IR1 == 0 && IR2 == 1 && y == true)
+      if ((destinationX == 0) && (destinationY == 0))
       {
-        stop();
-        vTaskDelay(500/portTICK_PERIOD_MS);
-        vTaskResume(mSpeed);  // resuming Speed
-        vTaskResume(go);      // resuming line follow
-        State = highStateY; 
-      }else if (count == 0 && IR1 == 0 && IR2 == 1 && x == true)
-      {
-        stop();
-        vTaskDelay(500/portTICK_PERIOD_MS);
-        vTaskResume(mSpeed);  // resuming Speed
-        vTaskResume(go);      // resuming line follow
-        State = lowStateX;
+        State = destination; 
       }else
-       {
+      {
         turning();
-       } 
+      }
+  
       break;
 
       case highStateY:
-
-
-      destinationY = (targetY - currentY);
-      Serial.print(" Destination Y: ");
-      Serial.println(destinationY);
+      
 
       if (destinationY == 0 )
       {
         vTaskSuspend(go);
         vTaskSuspend(mSpeed);
         stop();
-        vTaskDelay(500/portTICK_PERIOD_MS);
-        x = true;
-        y = false; 
-        axisTurn = xaxisTurn; 
+        vTaskDelay(500/portTICK_PERIOD_MS); 
         State = turn;
       }
 
@@ -326,42 +301,96 @@ void running(void *argc)
 }
 
 void turning(){
-
-  switch (axisTurn)
+switch (direction)
+{
+case 1:
+  if((currentY<targetY)&&(destinationY!=0 )&&(destinationX==0))
   {
-  case xaxisTurn:
-    
-    if (currentX < targetX)
-   {
-    forward_right();
-   }else if (currentX > targetX)
-   {
-    forward_left();
-   }else if (currentX == targetX)
-   {
-     State = destination; 
-   }
-
-   break;
-
-  case yaxisTurn:
-
-    if (currentY < targetY)
-   {
-    forward_left();
-   }else if (currentY > targetY)
-   {
-    forward_right();
-   }else if (currentY == targetY)
-   {
-     State = destination; 
-   }
-  break;
-  default:
-    break;
+  forward_left();
+  if (count == 0 && IR1 == 0 && IR2 == 1)
+  {
+    turnManagerY();
+    direction = 2;
   }
+  }
+  else if ((currentY>targetY)&&(destinationY!=0 )&&(destinationX==0))
+  {
+  
+  forward_right();
+   if (count == 0 && IR1 == 0 && IR2 == 1)
+  {
+    turnManagerY();
+    direction = 4;
+  }
+  }
+  
+  break;
+case 2: 
+if((currentX>targetX)&&(destinationX!=0 )&&(destinationY==0))
+  {
+  forward_left(); 
 
+  if (count == 0 && IR1 == 0 && IR2 == 1)
+  {
+    turnManagerX();
+    direction = 3;
+  }
+   }
+  else if ((currentX<targetX)&&(destinationX!=0 )&&(destinationY==0))
+  {
+   forward_right(); 
+  if (count == 0 && IR1 == 0 && IR2 == 1)
+  {
+    turnManagerX();
+    direction = 1;
+  }
+  }
+  break;
+  case 3:
+  if((currentY>targetY)&&(destinationY!=0 )&&(destinationX==0))
+  {
+  forward_left(); 
+  if (count == 0 && IR1 == 0 && IR2 == 1)
+  {
+    turnManagerY();
+    direction = 4;
+  }
+   }
+  else if ((currentY<targetY)&&(destinationY!=0 )&&(destinationX==0))
+  {
+   forward_right(); 
+  if (count == 0 && IR1 == 0 && IR2 == 1)
+  {
+    turnManagerY();
+    direction = 2;
+  }
+  }
+  break;
+case 4:
+  if((currentX>targetX)&&(destinationX!=0 )&&(destinationY==0))
+  {
+  forward_right(); 
+  if (count == 0 && IR1 == 0 && IR2 == 1)
+  {
+    turnManagerX();
+    direction = 3;
+  }
+  }
+  else if ((currentX<targetX)&&(destinationX!=0 )&&(destinationY==0))
+  {
+   forward_left(); 
+  if (count == 0 && IR1 == 0 && IR2 == 1)
+  {
+    turnManagerX();
+    direction = 1;
+  }
+  }
+  break;
 
+default:
+  break;
+}
+  
 
 }
 
@@ -439,6 +468,19 @@ void distance()
   Serial.print(currentDistance);
   Serial.println("cm");
 }
+void turnManagerY(){
+  
+  stop();
+  vTaskDelay(500/portTICK_PERIOD_MS);
+  vTaskResume(mSpeed);  // resuming Speed
+  vTaskResume(go);      // resuming line follow
+  State = lowStateY; 
+}
+void turnManagerX(){
 
-
-
+  stop();
+  vTaskDelay(500/portTICK_PERIOD_MS);
+  vTaskResume(mSpeed);  // resuming Speed
+  vTaskResume(go);      // resuming line follow
+  State = highStateX; 
+}
