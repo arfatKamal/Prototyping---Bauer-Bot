@@ -18,6 +18,8 @@ uint8_t targetX = 3;
 uint8_t currentX= 1;
 uint8_t targetY = 3;
 uint8_t currentY= 1;
+uint8_t secondX = 1;
+uint8_t secondY = 1; 
 uint8_t destinationX = (targetX - currentX);
 uint8_t destinationY = (targetY - currentY);
 
@@ -27,8 +29,14 @@ const uint8_t lowStateX = 1;
 const uint8_t turn = 2;
 const uint8_t lowStateY = 3;
 const uint8_t highStateY = 4;
+const uint8_t destination = 5; 
 volatile uint8_t State = highStateX;
 
+/*Turn */
+const uint8_t xaxisTurn = 10;
+const uint8_t yaxisTurn = 11;
+volatile uint8_t axisTurn;
+bool x, y; 
 
 /* Motors */
 const uint8_t rightMotor = 10;   // Motor Right connections
@@ -64,6 +72,8 @@ void forward_right();
 void forward_left();
 void stop();
 void ninetyTurn();
+void turning();
+
 
 void setup()
 {
@@ -184,10 +194,10 @@ void positionCount(void *argc){
         vTaskSuspend(go);
         vTaskSuspend(mSpeed);
         stop();
-        leftSpeed = 102;
-        rightSpeed = 80;
-        ninetyTurn();
         vTaskDelay(200/portTICK_PERIOD_MS);
+        x = false;
+        y = true; 
+        axisTurn = yaxisTurn; 
         State = turn; 
       }
      
@@ -208,16 +218,24 @@ void positionCount(void *argc){
 
       case turn:
 
-      if (count == 1 && IR1 == 0 && IR2 == 0)
+      if (count == 0 && IR1 == 0 && IR2 == 1 && y == true)
       {
         stop();
         vTaskDelay(500/portTICK_PERIOD_MS);
-        vTaskResume(go);  // resuming line follow
+        vTaskResume(mSpeed);  // resuming Speed
+        vTaskResume(go);      // resuming line follow
         State = highStateY; 
-      }else
+      }else if (count == 0 && IR1 == 0 && IR2 == 1 && x == true)
       {
-        ninetyTurn();
-      } 
+        stop();
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        vTaskResume(mSpeed);  // resuming Speed
+        vTaskResume(go);      // resuming line follow
+        State = lowStateX;
+      }else
+       {
+        turning();
+       } 
       break;
 
       case highStateY:
@@ -232,11 +250,11 @@ void positionCount(void *argc){
         vTaskSuspend(go);
         vTaskSuspend(mSpeed);
         stop();
-        /*leftSpeed = 102;
-        rightSpeed = 80;
-        ninetyTurn();
-        vTaskDelay(200/portTICK_PERIOD_MS);
-        State = turn; */
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        x = true;
+        y = false; 
+        axisTurn = xaxisTurn; 
+        State = turn;
       }
 
 
@@ -257,7 +275,13 @@ void positionCount(void *argc){
       }      
       break;
     
+    case destination:
 
+    // reseting X and Y   
+      targetX = secondX;
+      targetY = secondY; 
+      State = turn; 
+      break;
 
     default:
        stop();
@@ -299,6 +323,46 @@ void running(void *argc)
      }
 
   }
+}
+
+void turning(){
+
+  switch (axisTurn)
+  {
+  case xaxisTurn:
+    
+    if (currentX < targetX)
+   {
+    forward_right();
+   }else if (currentX > targetX)
+   {
+    forward_left();
+   }else if (currentX == targetX)
+   {
+     State = destination; 
+   }
+
+   break;
+
+  case yaxisTurn:
+
+    if (currentY < targetY)
+   {
+    forward_left();
+   }else if (currentY > targetY)
+   {
+    forward_right();
+   }else if (currentY == targetY)
+   {
+     State = destination; 
+   }
+  break;
+  default:
+    break;
+  }
+
+
+
 }
 
 
