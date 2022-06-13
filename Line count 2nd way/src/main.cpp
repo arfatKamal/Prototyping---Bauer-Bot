@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
+#include <math.h>
 
 /*IR sensors */
 const uint8_t IR1_pin = A0;   // Left
@@ -14,14 +15,17 @@ uint16_t currentDistance;
 
 
 /* Position Count */
-uint8_t targetX = 2;
-uint8_t currentX= 0;
-uint8_t targetY = 2;
-uint8_t currentY= 3;
-uint8_t secondX = 3;
-uint8_t secondY = 3; 
-uint8_t destinationX = abs(targetX - currentX);
-uint8_t destinationY = abs(targetY - currentY);
+int currentX= 1;
+int currentY= 1;
+
+int targetX = 2;
+int targetY = 3;
+
+int secondX = 2;
+int secondY = 4; 
+
+int destinationX ;
+int destinationY ;
 
 /* Position count States */ 
 const uint8_t highStateX = 0;
@@ -107,12 +111,13 @@ void loop()
    /*IR1 = digitalRead(IR1_pin);
    IR2 = digitalRead(IR2_pin);
    count = digitalRead(IR3_pin);
-   Serial.print("Left IR: ");
-   Serial.println(IR1);
-   Serial.print("Right IR: ");
-   Serial.println(IR2);
-   Serial.print("3rd IR: ");
-   Serial.println(count);*/
+   Serial.print(" Left IR: ");
+   Serial.print(IR1);
+   Serial.print(" Right IR: ");
+   Serial.print(IR2);
+   Serial.print(" 3rd IR: ");
+   Serial.println(count);
+   */
   
 }
 
@@ -178,6 +183,8 @@ void positionCount(void *argc){
    IR1 = digitalRead(IR1_pin);
    IR2 = digitalRead(IR2_pin);
    count = digitalRead(IR3_pin);
+   destinationX = abs(targetX - currentX);
+   destinationY = abs(targetY - currentY);
 
   
     switch (State)
@@ -202,12 +209,49 @@ void positionCount(void *argc){
     case highStateX:
     
     if (count == 0 && IR1 == 0 && IR2 == 0)
-    {
-      currentX += 1; 
-      Serial.println(currentX);
+    { 
+      if(targetX<currentX){
+      currentX--; }
+      else if(targetX>currentX){
+      currentX++; }
+
+     
       State = lowStateX;
     }
       break;
+
+      case highStateY:
+      
+
+      if (count == 0 && IR1 == 0 && IR2 == 0)
+    {
+      if(targetY<currentY){
+      currentY--; }
+      else if(targetY>currentY){
+      currentY++; }
+      
+
+      
+      State = lowStateY;
+    }
+      break;
+
+      case lowStateY:
+
+      if (destinationY == 0 )
+      {
+        vTaskSuspend(go);
+        vTaskSuspend(mSpeed);
+        stop();
+        vTaskDelay(200/portTICK_PERIOD_MS);
+
+        State = turn; 
+      }
+     
+    if (count == 1){
+
+      State = highStateY; 
+    }    
 
       case turn:
       if ((destinationX == 0) && (destinationY == 0))
@@ -217,44 +261,35 @@ void positionCount(void *argc){
       {
         turning();
       }
-  
+      Serial.println(" State: ");
+      Serial.print(State);
+      Serial.println(" Direction: ");
+      Serial.print(direction);
       break;
 
-      case highStateY:
-      
-
-      if (destinationY == 0 )
-      {
-        vTaskSuspend(go);
-        vTaskSuspend(mSpeed);
-        stop();
-        vTaskDelay(500/portTICK_PERIOD_MS); 
-        State = turn;
-      }
-
-
-      if (count == 0 && IR1 == 0 && IR2 == 0)
-      {
-        currentY += 1; 
-        Serial.println(currentY);
-        State = lowStateY;
-      }    
-    break;
-
-     case lowStateY:
-
-      if (count == 1)
-      {
-        //Serial.println(currentY);
-         State = highStateY;
-      }      
-      break;
+     
+    // reseting X and Y   
     
     case destination:
 
-    // reseting X and Y   
       targetX = secondX;
       targetY = secondY; 
+        vTaskSuspend(go);
+        vTaskSuspend(mSpeed);
+        stop();
+        vTaskDelay(200/portTICK_PERIOD_MS);
+      Serial.println(State);
+        
+      Serial.print(" New target X: ");
+      Serial.print(targetX);
+      Serial.print(" New target Y: ");
+      Serial.println(targetY);
+      Serial.print(" current X: ");
+      Serial.print(currentX);
+      Serial.print(" Current Y: ");
+      Serial.println(currentY);
+        
+      
       State = turn; 
       break;
 
@@ -280,18 +315,12 @@ void running(void *argc)
   if (IR1 == 1 && IR2 == 0)    
      { 
       forward_right();
-      //stop();
-
      }else if (IR1 == 0 && IR2 == 1) 
      {
        forward_left();
-       //stop();
-
      }else if (IR1 == 0 && IR2 == 0)
      {
        forward();
-      // stop();
-
      }else if (IR1 == 1 && IR2 == 1)
      {
        stop();
@@ -304,7 +333,7 @@ void turning(){
 switch (direction)
 {
 case 1:
-  if((currentY<targetY)&&(destinationY!=0 )&&(destinationX==0))
+  if((currentY<targetY) && (destinationY!=0))
   {
   forward_left();
   if (count == 0 && IR1 == 0 && IR2 == 1)
@@ -313,20 +342,19 @@ case 1:
     direction = 2;
   }
   }
-  else if ((currentY>targetY)&&(destinationY!=0 )&&(destinationX==0))
+  else if ((currentY>targetY) && (destinationY!=0 ))
   {
-  
   forward_right();
-   if (count == 0 && IR1 == 0 && IR2 == 1)
+   if (count == 1 && IR1 == 1 && IR2 == 0)
   {
     turnManagerY();
     direction = 4;
   }
   }
-  
   break;
+
 case 2: 
-if((currentX>targetX)&&(destinationX!=0 )&&(destinationY==0))
+if((currentX>targetX) && (destinationX!=0))
   {
   forward_left(); 
 
@@ -336,10 +364,10 @@ if((currentX>targetX)&&(destinationX!=0 )&&(destinationY==0))
     direction = 3;
   }
    }
-  else if ((currentX<targetX)&&(destinationX!=0 )&&(destinationY==0))
+  else if ((currentX<targetX) && (destinationX!=0))
   {
    forward_right(); 
-  if (count == 0 && IR1 == 0 && IR2 == 1)
+  if (count == 1 && IR1 == 1 && IR2 == 0)
   {
     turnManagerX();
     direction = 1;
@@ -347,7 +375,7 @@ if((currentX>targetX)&&(destinationX!=0 )&&(destinationY==0))
   }
   break;
   case 3:
-  if((currentY>targetY)&&(destinationY!=0 )&&(destinationX==0))
+  if((currentY > targetY) && (destinationY != 0))
   {
   forward_left(); 
   if (count == 0 && IR1 == 0 && IR2 == 1)
@@ -356,10 +384,10 @@ if((currentX>targetX)&&(destinationX!=0 )&&(destinationY==0))
     direction = 4;
   }
    }
-  else if ((currentY<targetY)&&(destinationY!=0 )&&(destinationX==0))
+  else if ((currentY < targetY) && (destinationY != 0))
   {
    forward_right(); 
-  if (count == 0 && IR1 == 0 && IR2 == 1)
+  if (count == 1 && IR1 == 1 && IR2 == 0)
   {
     turnManagerY();
     direction = 2;
@@ -367,16 +395,16 @@ if((currentX>targetX)&&(destinationX!=0 )&&(destinationY==0))
   }
   break;
 case 4:
-  if((currentX>targetX)&&(destinationX!=0 )&&(destinationY==0))
+  if((currentX > targetX) && (destinationX != 0))
   {
   forward_right(); 
-  if (count == 0 && IR1 == 0 && IR2 == 1)
+  if (count == 1 && IR1 == 1 && IR2 == 0)
   {
     turnManagerX();
     direction = 3;
   }
   }
-  else if ((currentX<targetX)&&(destinationX!=0 )&&(destinationY==0))
+  else if ((currentX < targetX) && (destinationX != 0))
   {
    forward_left(); 
   if (count == 0 && IR1 == 0 && IR2 == 1)
@@ -474,7 +502,7 @@ void turnManagerY(){
   vTaskDelay(500/portTICK_PERIOD_MS);
   vTaskResume(mSpeed);  // resuming Speed
   vTaskResume(go);      // resuming line follow
-  State = lowStateY; 
+  State = highStateY; 
 }
 void turnManagerX(){
 
