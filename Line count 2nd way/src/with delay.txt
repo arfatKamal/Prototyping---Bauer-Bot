@@ -16,12 +16,12 @@ uint16_t currentDistance;
 
 /* Position Count */
 int currentX= 1;
-int currentY= 1;
+int currentY= 4;
 
 int targetX = 2;
-int targetY = 3;
+int targetY = 5;
 
-int secondX = 2;
+int secondX = 1;
 int secondY = 4; 
 
 int destinationX ;
@@ -39,7 +39,7 @@ volatile uint8_t State = highStateX;
 /*Turn */
 
 volatile uint8_t direction=1; 
-
+bool ninetyTurn = false;
 
 /* Motors */
 const uint8_t rightMotor = 10;   // Motor Right connections
@@ -51,21 +51,22 @@ const uint8_t in3 = 7;         // left motor ; for foward LOW
 const uint8_t in4 = 6;         // left motor ; for forward HIGH
 
 /* Speed */
-uint8_t Speed = 150;
-uint8_t error = 30;
+uint8_t Speed = 130;
+uint8_t error = 20;
 uint8_t leftSpeed = Speed+error;
 uint8_t rightSpeed = Speed;
 
 uint8_t turnSpeed = 30;
 
+int leftDelay = 1100;
+int rightDelay = 1550;
 
-void readings(void *argc);
 void running(void *argc);
 void setSpeed(void *argc);
 void positionCount(void *argc);
 
 
-TaskHandle_t Data, go, mSpeed, axis;
+TaskHandle_t  go, mSpeed, axis;
 
 /* functions */
 void distance();
@@ -74,8 +75,9 @@ void backward();
 void forward_right();
 void forward_left();
 void stop();
-void ninetyTurn();
 void turning();
+void ninetyTurnR();
+void ninetyTurnL();
 
 
 void setup()
@@ -133,7 +135,7 @@ void setSpeed(void *argc)
      
   if (IR1 == 1 && IR2 == 0)    
      { 
-       turnSpeed += 5;
+       turnSpeed += 10;
        analogWrite(leftMotor, turnSpeed);
        analogWrite(rightMotor, 0);
        
@@ -144,7 +146,7 @@ void setSpeed(void *argc)
 
      }else if (IR1 == 0 && IR2 == 1) 
      {
-       turnSpeed += 5;
+       turnSpeed += 10;
        analogWrite(rightMotor, turnSpeed);
        analogWrite(leftMotor, 0);
    
@@ -208,7 +210,7 @@ void positionCount(void *argc){
       break;
     case highStateX:
     
-    if (count == 0 && IR1 == 0 && IR2 == 0)
+    if (count == 0 && IR2 == 0 && IR1 == 0)
     { 
       if(targetX<currentX){
       currentX--; }
@@ -223,7 +225,7 @@ void positionCount(void *argc){
       case highStateY:
       
 
-      if (count == 0 && IR1 == 0 && IR2 == 0)
+      if (count == 0 && IR2 == 0 && IR1 == 0)
     {
       if(targetY<currentY){
       currentY--; }
@@ -260,11 +262,9 @@ void positionCount(void *argc){
       }else
       {
         turning();
+     
       }
-      Serial.println(" State: ");
-      Serial.print(State);
-      Serial.println(" Direction: ");
-      Serial.print(direction);
+      
       break;
 
      
@@ -274,20 +274,10 @@ void positionCount(void *argc){
 
       targetX = secondX;
       targetY = secondY; 
-        vTaskSuspend(go);
-        vTaskSuspend(mSpeed);
-        stop();
-        vTaskDelay(200/portTICK_PERIOD_MS);
-      Serial.println(State);
-        
-      Serial.print(" New target X: ");
-      Serial.print(targetX);
-      Serial.print(" New target Y: ");
-      Serial.println(targetY);
-      Serial.print(" current X: ");
-      Serial.print(currentX);
-      Serial.print(" Current Y: ");
-      Serial.println(currentY);
+      vTaskSuspend(go);
+      vTaskSuspend(mSpeed);
+      stop();
+      vTaskDelay(200/portTICK_PERIOD_MS);
         
       
       State = turn; 
@@ -332,86 +322,85 @@ void running(void *argc)
 void turning(){
 switch (direction)
 {
+
+
 case 1:
-  if((currentY<targetY) && (destinationY!=0))
+  if((currentY < targetY))
   {
-  forward_left();
-  if (count == 0 && IR1 == 0 && IR2 == 1)
-  {
+    forward_left();
+    vTaskDelay(leftDelay/portTICK_PERIOD_MS);
     turnManagerY();
     direction = 2;
-  }
-  }
-  else if ((currentY>targetY) && (destinationY!=0 ))
-  {
-  forward_right();
-   if (count == 1 && IR1 == 1 && IR2 == 0)
-  {
+  }else if (currentY > targetY)
+    {
+    forward_right();
+    vTaskDelay(rightDelay/portTICK_PERIOD_MS);
     turnManagerY();
     direction = 4;
   }
-  }
   break;
+
+
+
 
 case 2: 
-if((currentX>targetX) && (destinationX!=0))
-  {
-  forward_left(); 
 
-  if (count == 0 && IR1 == 0 && IR2 == 1)
+if((currentX > targetX))
   {
+  
+    forward_left();
+    vTaskDelay(leftDelay/portTICK_PERIOD_MS);
     turnManagerX();
     direction = 3;
-  }
    }
-  else if ((currentX<targetX) && (destinationX!=0))
-  {
-   forward_right(); 
-  if (count == 1 && IR1 == 1 && IR2 == 0)
-  {
+    else if ((currentX < targetX))
+   { 
+    forward_right();
+    vTaskDelay(rightDelay/portTICK_PERIOD_MS);
     turnManagerX();
     direction = 1;
-  }
-  }
+    }
+  
   break;
+
+
+
   case 3:
-  if((currentY > targetY) && (destinationY != 0))
+  if((currentY > targetY))
   {
-  forward_left(); 
-  if (count == 0 && IR1 == 0 && IR2 == 1)
-  {
+ 
+    forward_left();
+    vTaskDelay(leftDelay/portTICK_PERIOD_MS);
     turnManagerY();
     direction = 4;
-  }
-   }
-  else if ((currentY < targetY) && (destinationY != 0))
+ }
+  else if (currentY < targetY)
   {
-   forward_right(); 
-  if (count == 1 && IR1 == 1 && IR2 == 0)
-  {
+    forward_right();
+    vTaskDelay(rightDelay/portTICK_PERIOD_MS);
     turnManagerY();
     direction = 2;
   }
-  }
   break;
+
+
+
+
 case 4:
-  if((currentX > targetX) && (destinationX != 0))
+  if((currentX > targetX))
   {
-  forward_right(); 
-  if (count == 1 && IR1 == 1 && IR2 == 0)
-  {
+  
+    forward_right();
+    vTaskDelay(rightDelay/portTICK_PERIOD_MS);
     turnManagerX();
     direction = 3;
   }
-  }
-  else if ((currentX < targetX) && (destinationX != 0))
-  {
-   forward_left(); 
-  if (count == 0 && IR1 == 0 && IR2 == 1)
-  {
+  else if ((currentX < targetX))
+  { 
+    forward_left();
+    vTaskDelay(leftDelay/portTICK_PERIOD_MS);
     turnManagerX();
-    direction = 1;
-  }
+    direction = 1;  
   }
   break;
 
@@ -470,36 +459,9 @@ void stop()
   digitalWrite(in4, LOW);
 }
 
-void ninetyTurn(){
-   
-   analogWrite(leftMotor, leftSpeed);
-   analogWrite(rightMotor, rightSpeed);
-
-   digitalWrite(in1, LOW);
-   digitalWrite(in2, HIGH);
-   digitalWrite(in3, HIGH);
-   digitalWrite(in4, LOW);
-}
-
-void distance()
-{
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  int travelTime = pulseIn(echoPin, HIGH);
-
-  currentDistance = 0.0343 * travelTime / 2;
-
-  Serial.print("Distance:");
-  Serial.print(currentDistance);
-  Serial.println("cm");
-}
 void turnManagerY(){
   
   stop();
-  vTaskDelay(500/portTICK_PERIOD_MS);
   vTaskResume(mSpeed);  // resuming Speed
   vTaskResume(go);      // resuming line follow
   State = highStateY; 
@@ -507,7 +469,6 @@ void turnManagerY(){
 void turnManagerX(){
 
   stop();
-  vTaskDelay(500/portTICK_PERIOD_MS);
   vTaskResume(mSpeed);  // resuming Speed
   vTaskResume(go);      // resuming line follow
   State = highStateX; 

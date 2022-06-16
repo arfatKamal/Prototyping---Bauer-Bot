@@ -16,13 +16,13 @@ uint16_t currentDistance;
 
 /* Position Count */
 int currentX= 1;
-int currentY= 1;
+int currentY= 2;
 
 int targetX = 2;
-int targetY = 3;
+int targetY = 4;
 
-int secondX = 2;
-int secondY = 4; 
+int secondX = 3;
+int secondY = 2; 
 
 int destinationX ;
 int destinationY ;
@@ -116,8 +116,7 @@ void loop()
    Serial.print(" Right IR: ");
    Serial.print(IR2);
    Serial.print(" 3rd IR: ");
-   Serial.println(count);
-   */
+   Serial.println(count);*/
   
 }
 
@@ -257,14 +256,16 @@ void positionCount(void *argc){
       if ((destinationX == 0) && (destinationY == 0))
       {
         State = destination; 
+       Serial.print(" State: ");
+      Serial.print(State);
+      Serial.print(" Direction: ");
+      Serial.println(direction);
       }else
       {
         turning();
+     
       }
-      Serial.println(" State: ");
-      Serial.print(State);
-      Serial.println(" Direction: ");
-      Serial.print(direction);
+      
       break;
 
      
@@ -274,10 +275,10 @@ void positionCount(void *argc){
 
       targetX = secondX;
       targetY = secondY; 
-        vTaskSuspend(go);
-        vTaskSuspend(mSpeed);
-        stop();
-        vTaskDelay(200/portTICK_PERIOD_MS);
+      vTaskSuspend(go);
+      vTaskSuspend(mSpeed);
+      stop();
+      vTaskDelay(200/portTICK_PERIOD_MS);
       Serial.println(State);
         
       Serial.print(" New target X: ");
@@ -332,8 +333,13 @@ void running(void *argc)
 void turning(){
 switch (direction)
 {
+
+   IR1 = digitalRead(IR1_pin);
+   IR2 = digitalRead(IR2_pin);
+   count = digitalRead(IR3_pin);
+
 case 1:
-  if((currentY<targetY) && (destinationY!=0))
+  if((currentY < targetY) && (destinationY != 0))
   {
   forward_left();
   if (count == 0 && IR1 == 0 && IR2 == 1)
@@ -342,7 +348,7 @@ case 1:
     direction = 2;
   }
   }
-  else if ((currentY>targetY) && (destinationY!=0 ))
+  else if ((currentY > targetY) && (destinationY != 0))
   {
   forward_right();
    if (count == 1 && IR1 == 1 && IR2 == 0)
@@ -353,35 +359,48 @@ case 1:
   }
   break;
 
+
+
+
 case 2: 
-if((currentX>targetX) && (destinationX!=0))
+
+Serial.println(direction);
+
+if((currentX > targetX))
   {
   forward_left(); 
 
   if (count == 0 && IR1 == 0 && IR2 == 1)
-  {
-    turnManagerX();
+  {   
     direction = 3;
+    turnManagerX();
+    
   }
    }
-  else if ((currentX<targetX) && (destinationX!=0))
+  else if ((currentX < targetX))
   {
+   Serial.println(" Turning Right "); 
    forward_right(); 
   if (count == 1 && IR1 == 1 && IR2 == 0)
   {
-    turnManagerX();
+    Serial.println(" Turning Right Successful. ");
     direction = 1;
+    turnManagerX();
+    
   }
   }
   break;
+
+
+
   case 3:
   if((currentY > targetY) && (destinationY != 0))
   {
   forward_left(); 
   if (count == 0 && IR1 == 0 && IR2 == 1)
   {
-    turnManagerY();
     direction = 4;
+    turnManagerY();  
   }
    }
   else if ((currentY < targetY) && (destinationY != 0))
@@ -389,28 +408,32 @@ if((currentX>targetX) && (destinationX!=0))
    forward_right(); 
   if (count == 1 && IR1 == 1 && IR2 == 0)
   {
-    turnManagerY();
     direction = 2;
+    turnManagerY();  
   }
   }
   break;
+
+
+
+
 case 4:
   if((currentX > targetX) && (destinationX != 0))
   {
   forward_right(); 
   if (count == 1 && IR1 == 1 && IR2 == 0)
   {
-    turnManagerX();
     direction = 3;
+    turnManagerX();
   }
   }
   else if ((currentX < targetX) && (destinationX != 0))
   {
    forward_left(); 
   if (count == 0 && IR1 == 0 && IR2 == 1)
-  {
-    turnManagerX();
+  { 
     direction = 1;
+    turnManagerX();
   }
   }
   break;
@@ -468,17 +491,6 @@ void stop()
   digitalWrite(in3, LOW);
   digitalWrite(in2, LOW);
   digitalWrite(in4, LOW);
-}
-
-void ninetyTurn(){
-   
-   analogWrite(leftMotor, leftSpeed);
-   analogWrite(rightMotor, rightSpeed);
-
-   digitalWrite(in1, LOW);
-   digitalWrite(in2, HIGH);
-   digitalWrite(in3, HIGH);
-   digitalWrite(in4, LOW);
 }
 
 void distance()
